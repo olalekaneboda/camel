@@ -69,6 +69,7 @@ import org.apache.camel.processor.interceptor.StreamCaching;
 import org.apache.camel.processor.loadbalancer.LoadBalancer;
 import org.apache.camel.spi.AsEndpointUri;
 import org.apache.camel.spi.AsPredicate;
+import org.apache.camel.spi.ClaimCheckRepository;
 import org.apache.camel.spi.DataFormat;
 import org.apache.camel.spi.IdAware;
 import org.apache.camel.spi.IdempotentRepository;
@@ -3442,6 +3443,36 @@ public abstract class ProcessorDefinition<Type extends ProcessorDefinition<Type>
         SortDefinition<T> answer = new SortDefinition<T>();
         addOutput(answer);
         return ExpressionClause.createAndSetExpression(answer);
+    }
+
+    public ClaimCheckDefinition claimCheck() {
+        ClaimCheckDefinition answer = new ClaimCheckDefinition();
+        addOutput(answer);
+        return answer;
+    }
+
+    public Type claimCheck(ClaimCheckOperation operation) {
+        ClaimCheckDefinition answer = new ClaimCheckDefinition();
+        answer.setOperation(operation);
+        addOutput(answer);
+        return (Type) this;
+    }
+
+    public Type claimCheck(ClaimCheckOperation operation, String key) {
+        ClaimCheckDefinition answer = new ClaimCheckDefinition();
+        answer.setOperation(operation);
+        answer.setKey(key);
+        addOutput(answer);
+        return (Type) this;
+    }
+
+    public Type claimCheck(ClaimCheckOperation operation, String key, String data) {
+        ClaimCheckDefinition answer = new ClaimCheckDefinition();
+        answer.setOperation(operation);
+        answer.setKey(key);
+        answer.setData(data);
+        addOutput(answer);
+        return (Type) this;
     }
 
     /**

@@ -1,0 +1,188 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.camel.model;
+
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlTransient;
+
+import org.apache.camel.CamelContextAware;
+import org.apache.camel.Processor;
+import org.apache.camel.processor.ClaimCheckProcessor;
+import org.apache.camel.processor.aggregate.AggregationStrategy;
+import org.apache.camel.processor.aggregate.AggregationStrategyBeanAdapter;
+import org.apache.camel.spi.RouteContext;
+import org.apache.camel.util.ObjectHelper;
+
+public class ClaimCheckDefinition extends NoOutputDefinition<ClaimCheckDefinition> {
+
+    @XmlAttribute(required = true)
+    private ClaimCheckOperation operation;
+    @XmlAttribute
+    private String key;
+    @XmlAttribute
+    private String data;
+    @XmlAttribute(name = "strategyRef")
+    private String aggregationStrategyRef;
+    @XmlAttribute(name = "strategyMethodName")
+    private String aggregationStrategyMethodName;
+    @XmlTransient
+    private AggregationStrategy aggregationStrategy;
+
+    public ClaimCheckDefinition() {
+    }
+
+    @Override
+    public String toString() {
+        return "ClaimCheck";
+    }
+
+    @Override
+    public String getLabel() {
+        return "claimCheck";
+    }
+
+    @Override
+    public Processor createProcessor(RouteContext routeContext) throws Exception {
+        ObjectHelper.notNull(operation, "operation", this);
+
+        ClaimCheckProcessor claim = new ClaimCheckProcessor();
+        claim.setOperation(operation.name());
+        claim.setKey(getKey());
+        claim.setData(getData());
+
+        AggregationStrategy strategy = createAggregationStrategy(routeContext);
+        if (strategy != null) {
+            claim.setAggregationStrategy(strategy);
+        }
+
+        // only data or aggregation strategy can be configured not both
+        if (getData() != null && strategy != null) {
+            throw new IllegalArgumentException("Cannot use both data and custom aggregation strategy on ClaimCheck EIP");
+        }
+
+        return claim;
+    }
+
+    private AggregationStrategy createAggregationStrategy(RouteContext routeContext) {
+        AggregationStrategy strategy = getAggregationStrategy();
+        if (strategy == null && aggregationStrategyRef != null) {
+            Object aggStrategy = routeContext.lookup(aggregationStrategyRef, Object.class);
+            if (aggStrategy instanceof AggregationStrategy) {
+                strategy = (AggregationStrategy) aggStrategy;
+            } else if (aggStrategy != null) {
+                strategy = new AggregationStrategyBeanAdapter(aggStrategy, getAggregationStrategyMethodName());
+            } else {
+                throw new IllegalArgumentException("Cannot find AggregationStrategy in Registry with name: " + aggregationStrategyRef);
+            }
+        }
+
+        if (strategy instanceof CamelContextAware) {
+            ((CamelContextAware) strategy).setCamelContext(routeContext.getCamelContext());
+        }
+
+        return strategy;
+    }
+
+    // Fluent API
+    //-------------------------------------------------------------------------
+
+    /**
+     * The claim check operation.
+     */
+    public ClaimCheckDefinition operation(ClaimCheckOperation operation) {
+        setOperation(operation);
+        return this;
+    }
+
+    /**
+     * To use a specific key for claim check id.
+     */
+    public ClaimCheckDefinition key(String key) {
+        setKey(key);
+        return this;
+    }
+
+    /**
+     * What data to merge when claiming from the repository.
+     * // TODO: add more description here about the syntax
+     */
+    public ClaimCheckDefinition data(String data) {
+        setData(data);
+        return this;
+    }
+
+    public ClaimCheckDefinition aggregationStrategy(AggregationStrategy aggregationStrategy) {
+        setAggregationStrategy(aggregationStrategy);
+        return this;
+    }
+
+    public ClaimCheckDefinition aggregationStrategyRef(String aggregationStrategyRef) {
+        setAggregationStrategyRef(aggregationStrategyRef);
+        return this;
+    }
+
+    // Properties
+    //-------------------------------------------------------------------------
+
+    public String getKey() {
+        return key;
+    }
+
+    public void setKey(String key) {
+        this.key = key;
+    }
+
+    public ClaimCheckOperation getOperation() {
+        return operation;
+    }
+
+    public void setOperation(ClaimCheckOperation operation) {
+        this.operation = operation;
+    }
+
+    public String getData() {
+        return data;
+    }
+
+    public void setData(String data) {
+        this.data = data;
+    }
+
+    public String getAggregationStrategyRef() {
+        return aggregationStrategyRef;
+    }
+
+    public void setAggregationStrategyRef(String aggregationStrategyRef) {
+        this.aggregationStrategyRef = aggregationStrategyRef;
+    }
+
+    public String getAggregationStrategyMethodName() {
+        return aggregationStrategyMethodName;
+    }
+
+    public void setAggregationStrategyMethodName(String aggregationStrategyMethodName) {
+        this.aggregationStrategyMethodName = aggregationStrategyMethodName;
+    }
+
+    public AggregationStrategy getAggregationStrategy() {
+        return aggregationStrategy;
+    }
+
+    public void setAggregationStrategy(AggregationStrategy aggregationStrategy) {
+        this.aggregationStrategy = aggregationStrategy;
+    }
+}

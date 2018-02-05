@@ -3445,12 +3445,24 @@ public abstract class ProcessorDefinition<Type extends ProcessorDefinition<Type>
         return ExpressionClause.createAndSetExpression(answer);
     }
 
+    /**
+     * The <a href="http://camel.apache.org/claim-check.html">Claim Check EIP</a>
+     * allows you to replace message content with a claim check (a unique key),
+     * which can be used to retrieve the message content at a later time.
+     */
     public ClaimCheckDefinition claimCheck() {
         ClaimCheckDefinition answer = new ClaimCheckDefinition();
         addOutput(answer);
         return answer;
     }
 
+    /**
+     * The <a href="http://camel.apache.org/claim-check.html">Claim Check EIP</a>
+     * allows you to replace message content with a claim check (a unique key),
+     * which can be used to retrieve the message content at a later time.
+     *
+     * @param operation the claim check operation to use.
+     */
     public Type claimCheck(ClaimCheckOperation operation) {
         ClaimCheckDefinition answer = new ClaimCheckDefinition();
         answer.setOperation(operation);
@@ -3458,6 +3470,14 @@ public abstract class ProcessorDefinition<Type extends ProcessorDefinition<Type>
         return (Type) this;
     }
 
+    /**
+     * The <a href="http://camel.apache.org/claim-check.html">Claim Check EIP</a>
+     * allows you to replace message content with a claim check (a unique key),
+     * which can be used to retrieve the message content at a later time.
+     *
+     * @param operation the claim check operation to use.
+     * @param key       the unique key to use for the get and set operations, can be <tt>null</tt> for push/pop operations
+     */
     public Type claimCheck(ClaimCheckOperation operation, String key) {
         ClaimCheckDefinition answer = new ClaimCheckDefinition();
         answer.setOperation(operation);
@@ -3466,6 +3486,15 @@ public abstract class ProcessorDefinition<Type extends ProcessorDefinition<Type>
         return (Type) this;
     }
 
+    /**
+     * The <a href="http://camel.apache.org/claim-check.html">Claim Check EIP</a>
+     * allows you to replace message content with a claim check (a unique key),
+     * which can be used to retrieve the message content at a later time.
+     *
+     * @param operation the claim check operation to use.
+     * @param key       the unique key to use for the get and set operations, can be <tt>null</tt> for push/pop operations
+     * @param data      describes what data to retrieve and merge back when using get or pop operations.
+     */
     public Type claimCheck(ClaimCheckOperation operation, String key, String data) {
         ClaimCheckDefinition answer = new ClaimCheckDefinition();
         answer.setOperation(operation);

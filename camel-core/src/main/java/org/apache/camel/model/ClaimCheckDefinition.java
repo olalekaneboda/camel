@@ -33,7 +33,7 @@ import org.apache.camel.util.EndpointHelper;
 import org.apache.camel.util.ObjectHelper;
 
 /**
- * The Claim Check from the EIP patterns allows you to replace message content with a claim check (a unique key),
+ * The Claim Check EIP allows you to replace message content with a claim check (a unique key),
  * which can be used to retrieve the message content at a later time.
  */
 @Metadata(label = "eip,routing")
@@ -59,7 +59,11 @@ public class ClaimCheckDefinition extends NoOutputDefinition<ClaimCheckDefinitio
 
     @Override
     public String toString() {
-        return "ClaimCheck";
+        if (operation != null) {
+            return "ClaimCheck[" + operation + "]";
+        } else {
+            return "ClaimCheck";
+        }
     }
 
     @Override

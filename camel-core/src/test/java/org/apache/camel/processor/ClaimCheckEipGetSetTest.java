@@ -41,14 +41,14 @@ public class ClaimCheckEipGetSetTest extends ContextTestSupport {
             public void configure() throws Exception {
                 from("direct:start")
                     .to("mock:a")
-                    .claimCheck(ClaimCheckOperation.set, "foo")
+                    .claimCheck(ClaimCheckOperation.Set, "foo")
                     .transform().constant("Bye World")
                     .to("mock:b")
-                    .claimCheck(ClaimCheckOperation.get, "foo")
+                    .claimCheck(ClaimCheckOperation.Get, "foo")
                     .to("mock:c")
                     .transform().constant("Hi World")
                     .to("mock:d")
-                    .claimCheck(ClaimCheckOperation.get, "foo")
+                    .claimCheck(ClaimCheckOperation.Get, "foo")
                     .to("mock:e");
             }
         };

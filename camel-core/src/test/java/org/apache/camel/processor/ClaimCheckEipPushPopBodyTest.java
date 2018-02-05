@@ -42,12 +42,12 @@ public class ClaimCheckEipPushPopBodyTest extends ContextTestSupport {
             public void configure() throws Exception {
                 from("direct:start")
                     .to("mock:a")
-                    .claimCheck(ClaimCheckOperation.push)
+                    .claimCheck(ClaimCheckOperation.Push)
                     .transform().constant("Bye World")
                     .setHeader("foo", constant(456))
                     .to("mock:b")
                     // only merge in the message body
-                    .claimCheck(ClaimCheckOperation.pop, null, "body")
+                    .claimCheck(ClaimCheckOperation.Pop, null, "body")
                     .to("mock:c");
             }
         };

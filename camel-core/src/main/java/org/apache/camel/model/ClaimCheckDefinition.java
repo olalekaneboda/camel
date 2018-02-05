@@ -32,6 +32,10 @@ import org.apache.camel.spi.RouteContext;
 import org.apache.camel.util.EndpointHelper;
 import org.apache.camel.util.ObjectHelper;
 
+/**
+ * The Claim Check from the EIP patterns allows you to replace message content with a claim check (a unique key),
+ * which can be used to retrieve the message content at a later time.
+ */
 @Metadata(label = "eip,routing")
 @XmlRootElement(name = "claimCheck")
 @XmlAccessorType(XmlAccessType.FIELD)
@@ -110,6 +114,14 @@ public class ClaimCheckDefinition extends NoOutputDefinition<ClaimCheckDefinitio
 
     /**
      * The claim check operation to use.
+     * The following operations is supported:
+     * <ul>
+     *     <li>Get</li> - Gets (does not remove) the claim check by the given key.
+     *     <li>GetAndRemove</li> - Gets and remove the claim check by the given key.
+     *     <li>Set</li> - Sets a new (will override if key already exists) claim check with the given key.
+     *     <li>Push</li> - Sets a new claim check on the stack (does not use key).
+     *     <li>Pop</li> - Gets the latest claim check from the stack (does not use key).
+     * </ul>
      */
     public ClaimCheckDefinition operation(ClaimCheckOperation operation) {
         setOperation(operation);
@@ -158,6 +170,14 @@ public class ClaimCheckDefinition extends NoOutputDefinition<ClaimCheckDefinitio
      */
     public ClaimCheckDefinition aggregationStrategyRef(String aggregationStrategyRef) {
         setAggregationStrategyRef(aggregationStrategyRef);
+        return this;
+    }
+
+    /**
+     * This option can be used to explicit declare the method name to use, when using POJOs as the AggregationStrategy.
+     */
+    public ClaimCheckDefinition aggregationStrategyMethodName(String aggregationStrategyMethodName) {
+        setAggregationStrategyMethodName(aggregationStrategyMethodName);
         return this;
     }
 

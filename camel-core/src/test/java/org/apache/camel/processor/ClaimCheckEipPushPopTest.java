@@ -39,10 +39,10 @@ public class ClaimCheckEipPushPopTest extends ContextTestSupport {
             public void configure() throws Exception {
                 from("direct:start")
                     .to("mock:a")
-                    .claimCheck(ClaimCheckOperation.push)
+                    .claimCheck(ClaimCheckOperation.Push)
                     .transform().constant("Bye World")
                     .to("mock:b")
-                    .claimCheck(ClaimCheckOperation.pop)
+                    .claimCheck(ClaimCheckOperation.Pop)
                     .to("mock:c");
             }
         };

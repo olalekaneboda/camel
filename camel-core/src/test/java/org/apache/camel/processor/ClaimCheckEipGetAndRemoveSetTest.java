@@ -42,14 +42,14 @@ public class ClaimCheckEipGetAndRemoveSetTest extends ContextTestSupport {
             public void configure() throws Exception {
                 from("direct:start")
                     .to("mock:a")
-                    .claimCheck(ClaimCheckOperation.set, "foo")
+                    .claimCheck(ClaimCheckOperation.Set, "foo")
                     .transform().constant("Bye World")
                     .to("mock:b")
-                    .claimCheck(ClaimCheckOperation.getAndRemove, "foo")
+                    .claimCheck(ClaimCheckOperation.GetAndRemove, "foo")
                     .to("mock:c")
                     .transform().constant("Hi World")
                     .to("mock:d")
-                    .claimCheck(ClaimCheckOperation.getAndRemove, "foo")
+                    .claimCheck(ClaimCheckOperation.GetAndRemove, "foo")
                     .to("mock:e");
             }
         };

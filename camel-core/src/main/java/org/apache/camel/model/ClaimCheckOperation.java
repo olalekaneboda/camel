@@ -19,10 +19,13 @@ package org.apache.camel.model;
 import javax.xml.bind.annotation.XmlEnum;
 import javax.xml.bind.annotation.XmlType;
 
+/**
+ * Operations for the Claim Check EIP.
+ */
 @XmlType
 @XmlEnum
 public enum ClaimCheckOperation {
 
-    get, getAndRemove, set, push, pop
+    Get, GetAndRemove, Set, Push, Pop
 
 }

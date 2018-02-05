@@ -112,7 +112,7 @@ public class ClaimCheckProcessor extends ServiceSupport implements AsyncProcesso
         }
 
         try {
-            if ("set".equals(operation)) {
+            if ("Set".equals(operation)) {
                 // copy exchange, and do not share the unit of work
                 Exchange copy = ExchangeHelper.createCorrelatedCopy(exchange, false);
                 boolean addedNew = repo.add(key, copy);
@@ -121,7 +121,7 @@ public class ClaimCheckProcessor extends ServiceSupport implements AsyncProcesso
                 } else {
                     LOG.debug("Override: {} -> {}", key, copy);
                 }
-            } else if ("get".equals(operation)) {
+            } else if ("Get".equals(operation)) {
                 Exchange copy = repo.get(key);
                 LOG.debug("Get: {} -> {}", key, exchange);
                 if (copy != null) {
@@ -130,7 +130,7 @@ public class ClaimCheckProcessor extends ServiceSupport implements AsyncProcesso
                         ExchangeHelper.copyResultsPreservePattern(exchange, result);
                     }
                 }
-            } else if ("getAndRemove".equals(operation)) {
+            } else if ("GetAndRemove".equals(operation)) {
                 Exchange copy = repo.getAndRemove(key);
                 LOG.debug("GetAndRemove: {} -> {}", key, exchange);
                 if (copy != null) {
@@ -141,12 +141,12 @@ public class ClaimCheckProcessor extends ServiceSupport implements AsyncProcesso
                         ExchangeHelper.copyResultsPreservePattern(exchange, result);
                     }
                 }
-            } else if ("push".equals(operation)) {
+            } else if ("Push".equals(operation)) {
                 // copy exchange, and do not share the unit of work
                 Exchange copy = ExchangeHelper.createCorrelatedCopy(exchange, false);
                 LOG.debug("Push: {} -> {}", key, copy);
                 repo.push(copy);
-            } else if ("pop".equals(operation)) {
+            } else if ("Pop".equals(operation)) {
                 Exchange copy = repo.pop();
                 LOG.debug("Pop: {} -> {}", key, exchange);
                 if (copy != null) {

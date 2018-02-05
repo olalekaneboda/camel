@@ -5,9 +5,9 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- * <p>
- * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,7 +16,10 @@
  */
 package org.apache.camel.model;
 
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlTransient;
 
 import org.apache.camel.CamelContextAware;
@@ -24,9 +27,14 @@ import org.apache.camel.Processor;
 import org.apache.camel.processor.ClaimCheckProcessor;
 import org.apache.camel.processor.aggregate.AggregationStrategy;
 import org.apache.camel.processor.aggregate.AggregationStrategyBeanAdapter;
+import org.apache.camel.spi.Metadata;
 import org.apache.camel.spi.RouteContext;
+import org.apache.camel.util.EndpointHelper;
 import org.apache.camel.util.ObjectHelper;
 
+@Metadata(label = "eip,routing")
+@XmlRootElement(name = "claimCheck")
+@XmlAccessorType(XmlAccessType.FIELD)
 public class ClaimCheckDefinition extends NoOutputDefinition<ClaimCheckDefinition> {
 
     @XmlAttribute(required = true)
@@ -35,9 +43,9 @@ public class ClaimCheckDefinition extends NoOutputDefinition<ClaimCheckDefinitio
     private String key;
     @XmlAttribute
     private String data;
-    @XmlAttribute(name = "strategyRef")
+    @XmlAttribute(name = "strategyRef") @Metadata(label = "advanced")
     private String aggregationStrategyRef;
-    @XmlAttribute(name = "strategyMethodName")
+    @XmlAttribute(name = "strategyMethodName") @Metadata(label = "advanced")
     private String aggregationStrategyMethodName;
     @XmlTransient
     private AggregationStrategy aggregationStrategy;
@@ -101,7 +109,7 @@ public class ClaimCheckDefinition extends NoOutputDefinition<ClaimCheckDefinitio
     //-------------------------------------------------------------------------
 
     /**
-     * The claim check operation.
+     * The claim check operation to use.
      */
     public ClaimCheckDefinition operation(ClaimCheckOperation operation) {
         setOperation(operation);
@@ -118,18 +126,36 @@ public class ClaimCheckDefinition extends NoOutputDefinition<ClaimCheckDefinitio
 
     /**
      * What data to merge when claiming from the repository.
-     * // TODO: add more description here about the syntax
+     *
+     * The following syntax is supported:
+     * <ul>
+     *     <li>body</li> - to aggregate the message body
+     *     <li>headers</li> - to aggregate all the message headers
+     *     <li>header:pattern</li> - to aggregate all the message headers that matches the pattern.
+     *     The pattern syntax is documented by: {@link EndpointHelper#matchPattern(String, String)}.
+     * </ul>
+     * You can specify multiple rules separated by comma. For example to include the message body and all headers starting with foo
+     * <tt>body,header:foo*</tt>.
+     * If the data rule is specified as empty or as wildcard then everything is merged.
      */
     public ClaimCheckDefinition data(String data) {
         setData(data);
         return this;
     }
 
+    /**
+     * To use a custom {@link AggregationStrategy} instead of the default implementation.
+     * Notice you cannot use both custom aggregation strategy and configure data at the same time.
+     */
     public ClaimCheckDefinition aggregationStrategy(AggregationStrategy aggregationStrategy) {
         setAggregationStrategy(aggregationStrategy);
         return this;
     }
 
+    /**
+     * To use a custom {@link AggregationStrategy} instead of the default implementation.
+     * Notice you cannot use both custom aggregation strategy and configure data at the same time.
+     */
     public ClaimCheckDefinition aggregationStrategyRef(String aggregationStrategyRef) {
         setAggregationStrategyRef(aggregationStrategyRef);
         return this;

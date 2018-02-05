@@ -5,9 +5,9 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- * <p>
- * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,14 +16,31 @@
  */
 package org.apache.camel.processor;
 
+import java.util.Map;
+
 import org.apache.camel.Exchange;
 import org.apache.camel.processor.aggregate.AggregationStrategy;
+import org.apache.camel.util.EndpointHelper;
 import org.apache.camel.util.ObjectHelper;
+import org.apache.camel.util.StringHelper;
 
+/**
+ * Default {@link AggregationStrategy} used by the {@link ClaimCheckProcessor} EIP.
+ * <p/>
+ * This strategy supports the following data rules syntax:
+ * <ul>
+ *     <li>body</li> - to aggregate the message body
+ *     <li>headers</li> - to aggregate all the message headers
+ *     <li>header:pattern</li> - to aggregate all the message headers that matches the pattern.
+ *     The pattern syntax is documented by: {@link EndpointHelper#matchPattern(String, String)}.
+ * </ul>
+ * You can specify multiple rules separated by comma. For example to include the message body and all headers starting with foo
+ * <tt>body,header:foo*</tt>.
+ * If the data rule is specified as empty or as wildcard then everything is merged.
+ */
 public class ClaimCheckAggregationStrategy implements AggregationStrategy {
 
-    private final String data;
-    // TODO: pattern matching for headers, eg headers:foo*, headers, headers:*, header:foo,header:bar
+    private final String data; // describes what data to merge
 
     public ClaimCheckAggregationStrategy(String data) {
         this.data = data;
@@ -35,8 +52,8 @@ public class ClaimCheckAggregationStrategy implements AggregationStrategy {
             return oldExchange;
         }
 
-        if (ObjectHelper.isEmpty(data)) {
-            // grab everything if data is empty
+        if (ObjectHelper.isEmpty(data) || "*".equals(data)) {
+            // grab everything if data is empty or wildcard
             return newExchange;
         }
 
@@ -47,6 +64,19 @@ public class ClaimCheckAggregationStrategy implements AggregationStrategy {
                 oldExchange.getMessage().setBody(newExchange.getMessage().getBody());
             } else if ("headers".equals(part)) {
                 oldExchange.getMessage().getHeaders().putAll(newExchange.getMessage().getHeaders());
+            } else if (part.startsWith("header:")) {
+                // pattern matching for headers, eg header:foo, header:foo*, header:(foo|bar)
+                String after = StringHelper.after(part, "header:");
+                Iterable i = ObjectHelper.createIterable(after, ",");
+                for (Object o : i) {
+                    String pattern = o.toString();
+                    for (Map.Entry<String, Object> header : newExchange.getMessage().getHeaders().entrySet()) {
+                        String key = header.getKey();
+                        if (EndpointHelper.matchPattern(key, pattern)) {
+                            oldExchange.getMessage().getHeaders().put(key, header.getValue());
+                        }
+                    }
+                }
             }
         }
 

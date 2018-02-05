@@ -16,21 +16,38 @@
  */
 package org.apache.camel.processor;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.camel.ContextTestSupport;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.model.ClaimCheckOperation;
 
-public class ClaimCheckEipPushPopBodyTest extends ContextTestSupport {
+public class ClaimCheckEipPushPopHeadersPatternTest extends ContextTestSupport {
 
-    public void testPushPopBody() throws Exception {
+    public void testPushPopHeadersPattern() throws Exception {
+        Map<String, Object> headers = new HashMap<>();
+        headers.put("foo", 123);
+        headers.put("bar", "Moes");
+        headers.put("car", "Toyota");
+
         getMockEndpoint("mock:a").expectedBodiesReceived("Hello World");
         getMockEndpoint("mock:a").expectedHeaderReceived("foo", 123);
+        getMockEndpoint("mock:a").expectedHeaderReceived("bar", "Moes");
+        getMockEndpoint("mock:a").message(0).header("car").isEqualTo("Toyota");
+
         getMockEndpoint("mock:b").expectedBodiesReceived("Bye World");
         getMockEndpoint("mock:b").expectedHeaderReceived("foo", 456);
-        getMockEndpoint("mock:c").expectedBodiesReceived("Hello World");
-        getMockEndpoint("mock:c").expectedHeaderReceived("foo", 456);
+        getMockEndpoint("mock:b").message(0).header("bar").isNull();
+        getMockEndpoint("mock:b").message(0).header("car").isEqualTo("Toyota");
 
-        template.sendBodyAndHeader("direct:start", "Hello World", "foo", 123);
+        getMockEndpoint("mock:c").expectedBodiesReceived("Bye World");
+        getMockEndpoint("mock:c").expectedHeaderReceived("foo", 123);
+        // bar header should be back now
+        getMockEndpoint("mock:c").expectedHeaderReceived("bar", "Moes");
+        getMockEndpoint("mock:c").message(0).header("car").isEqualTo("Toyota");
+
+        template.sendBodyAndHeaders("direct:start", "Hello World", headers);
 
         assertMockEndpointsSatisfied();
     }
@@ -45,9 +62,10 @@ public class ClaimCheckEipPushPopBodyTest extends ContextTestSupport {
                     .claimCheck(ClaimCheckOperation.push)
                     .transform().constant("Bye World")
                     .setHeader("foo", constant(456))
+                    .removeHeader("bar")
                     .to("mock:b")
-                    // only merge in the message body
-                    .claimCheck(ClaimCheckOperation.pop, null, "body")
+                    // only merge in the message headers
+                    .claimCheck(ClaimCheckOperation.pop, null, "header:(foo|bar)")
                     .to("mock:c");
             }
         };

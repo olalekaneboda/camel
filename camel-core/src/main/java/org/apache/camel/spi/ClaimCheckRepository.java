@@ -20,10 +20,13 @@ import org.apache.camel.Exchange;
 import org.apache.camel.Service;
 
 /**
- * Access to a repository of Keys to implement the
+ * Access to a repository of keys to implement the
  * <a href="http://camel.apache.org/claim-check.html">Claim Check</a> pattern.
  * <p/>
- * The <tt>add</tt> and <tt>contains</tt> methods is operating according to the {@link java.util.Set} contract.
+ * The <tt>add</tt> and <tt>contains</tt> methods is operating according to the {@link java.util.Map} contract,
+ * and the <tt>push</tt> and <tt>pop</tt> methods is operating according to the {@link java.util.Stack} contract.
+ * <p/>
+ * See important details about the Claim Check EIP implementation in Apache Camel at {@link org.apache.camel.processor.ClaimCheckProcessor}.
  */
 public interface ClaimCheckRepository extends Service {
 
@@ -64,7 +67,7 @@ public interface ClaimCheckRepository extends Service {
     void push(Exchange exchange);
 
     /**
-     * Pops the repository and returns the latest.
+     * Pops the repository and returns the latest. Or returns <tt>null</tt> if the stack is empty.
      */
     Exchange pop();
 

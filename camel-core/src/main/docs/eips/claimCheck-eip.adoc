@@ -1,6 +1,8 @@
 [[claimCheck-eip]]
 == Claim Check EIP
 
+Available as of Camel 2.21
+
 The Claim Check EIP allows you to replace message content with a claim check (a unique key),
 which can be used to retrieve the message content at a later time.
 
@@ -153,7 +155,17 @@ The following example shows the `Push` and `Pop` operations in action;
 
 [xml]
 ----
-TODO: XML example
+<route>
+  <from uri="direct:start"/>
+  <to uri="mock:a"/>
+  <claimCheck operation="Push"/>
+  <transform>
+    <constant>Bye World</constant>
+  </transform>
+  <to uri="mock:b"/>
+  <claimCheck operation="Pop"/>
+  <to uri="mock:c"/>
+</route>
 ----
 
 For example if the message body from the beginning is `Hello World` then that data is pushed on the stack of the Claim Check EIP.
@@ -164,7 +176,23 @@ Here is an example using `Get` and `Set` operations, which uses the key `foo`:
 
 [xml]
 ----
-TODO: XML example
+<route>
+  <from uri="direct:start"/>
+  <to uri="mock:a"/>
+  <claimCheck operation="Set" key="foo"/>
+  <transform>
+    <constant>Bye World</constant>
+  </transform>
+  <to uri="mock:b"/>
+  <claimCheck operation="Get" key="foo"/>
+  <to uri="mock:c"/>
+  <transform>
+    <constant>Hi World</constant>
+  </transform>
+  <to uri="mock:d"/>
+  <claimCheck operation="Get" key="foo"/>
+  <to uri="mock:e"/>
+</route>
 ----
 
 Notice how we can `Get` the same data twice using the `Get` operation as it will not remove the data. If you only want
@@ -174,5 +202,19 @@ The last example shows how to use the `data` option where we only want to get ba
 
 [xml]
 ----
-TODO: XML example
+<route>
+  <from uri="direct:start"/>
+  <to uri="mock:a"/>
+  <claimCheck operation="Push"/>
+  <transform>
+    <constant>Bye World</constant>
+  </transform>
+  <setHeader headerName="foo">
+    <constant>456</constant>
+  </setHeader>
+  <removeHeader headerName="bar"/>
+  <to uri="mock:b"/>
+  <claimCheck operation="Pop" data="header:(foo|bar)"/>
+  <to uri="mock:c"/>
+</route>
 ----

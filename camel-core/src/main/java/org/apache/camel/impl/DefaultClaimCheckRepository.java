@@ -24,6 +24,9 @@ import java.util.Map;
 import org.apache.camel.Exchange;
 import org.apache.camel.spi.ClaimCheckRepository;
 
+/**
+ * The default {@link ClaimCheckRepository} implementation that is an in-memory storage.
+ */
 public class DefaultClaimCheckRepository implements ClaimCheckRepository {
 
     private final Map<String, Exchange> map = new HashMap<>();

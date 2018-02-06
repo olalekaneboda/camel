@@ -20,9 +20,9 @@ import org.apache.camel.ContextTestSupport;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.model.ClaimCheckOperation;
 
-public class ClaimCheckEipPushPopExcludeBodyTest extends ContextTestSupport {
+public class ClaimCheckEipPushPopRemoveHeaderTest extends ContextTestSupport {
 
-    public void testPushPopBodyExclude() throws Exception {
+    public void testPushPopBodyRemoveHeader() throws Exception {
         getMockEndpoint("mock:a").expectedBodiesReceived("Hello World");
         getMockEndpoint("mock:a").expectedHeaderReceived("foo", 123);
         getMockEndpoint("mock:a").expectedHeaderReceived("bar", "Moes");
@@ -31,7 +31,7 @@ public class ClaimCheckEipPushPopExcludeBodyTest extends ContextTestSupport {
         getMockEndpoint("mock:b").expectedHeaderReceived("bar", "Jacks");
         getMockEndpoint("mock:c").expectedBodiesReceived("Bye World");
         getMockEndpoint("mock:c").expectedHeaderReceived("foo", 123);
-        getMockEndpoint("mock:c").expectedHeaderReceived("bar", "Jacks");
+        getMockEndpoint("mock:c").message(0).header("bar").isNull();
 
         template.sendBodyAndHeader("direct:start", "Hello World", "foo", 123);
 
@@ -51,8 +51,8 @@ public class ClaimCheckEipPushPopExcludeBodyTest extends ContextTestSupport {
                     .setHeader("foo", constant(456))
                     .setHeader("bar", constant("Jacks"))
                     .to("mock:b")
-                    // skip the body and bar header
-                    .claimCheck(ClaimCheckOperation.Pop, null, "-body,-header:bar")
+                    // skip the body and remove the bar header
+                    .claimCheck(ClaimCheckOperation.Pop, null, "-body,--header:bar")
                     .to("mock:c");
             }
         };

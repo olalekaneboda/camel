@@ -46,9 +46,7 @@ public class ClaimCheckDefinition extends NoOutputDefinition<ClaimCheckDefinitio
     @XmlAttribute
     private String key;
     @XmlAttribute
-    private String include;
-    @XmlAttribute
-    private String exclude;
+    private String filter;
     @XmlAttribute(name = "strategyRef") @Metadata(label = "advanced")
     private String aggregationStrategyRef;
     @XmlAttribute(name = "strategyMethodName") @Metadata(label = "advanced")
@@ -80,17 +78,60 @@ public class ClaimCheckDefinition extends NoOutputDefinition<ClaimCheckDefinitio
         ClaimCheckProcessor claim = new ClaimCheckProcessor();
         claim.setOperation(operation.name());
         claim.setKey(getKey());
-        claim.setInclude(getInclude());
-        claim.setExclude(getExclude());
+        claim.setFilter(getFilter());
 
         AggregationStrategy strategy = createAggregationStrategy(routeContext);
         if (strategy != null) {
             claim.setAggregationStrategy(strategy);
         }
 
-        // only data or aggregation strategy can be configured not both
-        if ((getInclude() != null || getExclude() != null) && strategy != null) {
-            throw new IllegalArgumentException("Cannot use both include/exclude and custom aggregation strategy on ClaimCheck EIP");
+        // only filter or aggregation strategy can be configured not both
+        if (getFilter() != null && strategy != null) {
+            throw new IllegalArgumentException("Cannot use both filter and custom aggregation strategy on ClaimCheck EIP");
+        }
+
+        // validate filter, we cannot have both +/- at the same time
+        if (getFilter() != null) {
+            Iterable it = ObjectHelper.createIterable(filter, ",");
+            boolean includeBody = false;
+            boolean excludeBody = false;
+            for (Object o : it) {
+                String pattern = o.toString();
+                if ("body".equals(pattern) || "+body".equals(pattern)) {
+                    includeBody = true;
+                } else if ("-body".equals(pattern)) {
+                    excludeBody = true;
+                }
+            }
+            if (includeBody && excludeBody) {
+                throw new IllegalArgumentException("Cannot have both include and exclude body at the same time in the filter: " + filter);
+            }
+            boolean includeHeaders = false;
+            boolean excludeHeaders = false;
+            for (Object o : it) {
+                String pattern = o.toString();
+                if ("headers".equals(pattern) || "+headers".equals(pattern)) {
+                    includeHeaders = true;
+                } else if ("-headers".equals(pattern)) {
+                    excludeHeaders = true;
+                }
+            }
+            if (includeHeaders && excludeHeaders) {
+                throw new IllegalArgumentException("Cannot have both include and exclude headers at the same time in the filter: " + filter);
+            }
+            boolean includeHeader = false;
+            boolean excludeHeader = false;
+            for (Object o : it) {
+                String pattern = o.toString();
+                if (pattern.startsWith("header:") || pattern.startsWith("+header:")) {
+                    includeHeader = true;
+                } else if (pattern.startsWith("-header:")) {
+                    excludeHeader = true;
+                }
+            }
+            if (includeHeader && excludeHeader) {
+                throw new IllegalArgumentException("Cannot have both include and exclude header at the same time in the filter: " + filter);
+            }
         }
 
         return claim;
@@ -144,7 +185,7 @@ public class ClaimCheckDefinition extends NoOutputDefinition<ClaimCheckDefinitio
     }
 
     /**
-     * What data to include when merging data back from claim check repository.
+     * Specified a filter to control what data gets merging data back from the claim check repository.
      *
      * The following syntax is supported:
      * <ul>
@@ -155,30 +196,18 @@ public class ClaimCheckDefinition extends NoOutputDefinition<ClaimCheckDefinitio
      * </ul>
      * You can specify multiple rules separated by comma. For example to include the message body and all headers starting with foo
      * <tt>body,header:foo*</tt>.
-     * If the include rule is specified as empty or as wildcard then everything is included.
-     * If you have configured both include and exclude then exclude take precedence over include.
-     */
-    public ClaimCheckDefinition include(String include) {
-        setInclude(include);
-        return this;
-    }
-
-    /**
-     * What data to exclude when merging data back from claim check repository.
-     *
-     * The following syntax is supported:
+     * The syntax supports the following prefixes which can be used to specify include,exclude, or remove
      * <ul>
-     *     <li>body</li> - to aggregate the message body
-     *     <li>headers</li> - to aggregate all the message headers
-     *     <li>header:pattern</li> - to aggregate all the message headers that matches the pattern.
-     *     The pattern syntax is documented by: {@link EndpointHelper#matchPattern(String, String)}.
+     *     <li>+</li> - to include (which is the default mode)
+     *     <li>-</li> - to exclude (exclude takes precedence over include)
+     *     <li>--</li> - to remove (remove takes precedence)
      * </ul>
-     * You can specify multiple rules separated by comma. For example to exclude the message body and all headers starting with bar
-     * <tt>body,header:bar*</tt>.
-     * If you have configured both include and exclude then exclude take precedence over include.
+     * For example to exclude a header name foo, and remove all headers starting with bar
+     * <tt>-header:foo,--headers:bar*</tt>
+     * Note you cannot have both include and exclude <tt>header:pattern</tt> at the same time.
      */
-    public ClaimCheckDefinition exclude(String exclude) {
-        setExclude(exclude);
+    public ClaimCheckDefinition filter(String filter) {
+        setFilter(filter);
         return this;
     }
 
@@ -227,20 +256,12 @@ public class ClaimCheckDefinition extends NoOutputDefinition<ClaimCheckDefinitio
         this.operation = operation;
     }
 
-    public String getInclude() {
-        return include;
+    public String getFilter() {
+        return filter;
     }
 
-    public void setInclude(String include) {
-        this.include = include;
-    }
-
-    public String getExclude() {
-        return exclude;
-    }
-
-    public void setExclude(String exclude) {
-        this.exclude = exclude;
+    public void setFilter(String filter) {
+        this.filter = filter;
     }
 
     public String getAggregationStrategyRef() {

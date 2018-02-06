@@ -49,8 +49,7 @@ public class ClaimCheckProcessor extends ServiceSupport implements AsyncProcesso
     private String operation;
     private AggregationStrategy aggregationStrategy;
     private String key;
-    private String include;
-    private String exclude;
+    private String filter;
 
     @Override
     public CamelContext getCamelContext() {
@@ -96,20 +95,12 @@ public class ClaimCheckProcessor extends ServiceSupport implements AsyncProcesso
         this.key = key;
     }
 
-    public String getInclude() {
-        return include;
+    public String getFilter() {
+        return filter;
     }
 
-    public void setInclude(String include) {
-        this.include = include;
-    }
-
-    public String getExclude() {
-        return exclude;
-    }
-
-    public void setExclude(String exclude) {
-        this.exclude = exclude;
+    public void setFilter(String filter) {
+        this.filter = filter;
     }
 
     public void process(Exchange exchange) throws Exception {
@@ -206,8 +197,7 @@ public class ClaimCheckProcessor extends ServiceSupport implements AsyncProcesso
 
     protected AggregationStrategy createAggregationStrategy() {
         ClaimCheckAggregationStrategy answer = new ClaimCheckAggregationStrategy();
-        answer.setInclude(include);
-        answer.setExclude(exclude);
+        answer.setFilter(filter);
         return answer;
     }
 }

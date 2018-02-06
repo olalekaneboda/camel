@@ -16,7 +16,9 @@
  */
 package org.apache.camel.processor;
 
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.camel.Exchange;
 import org.apache.camel.processor.aggregate.AggregationStrategy;
@@ -44,26 +46,17 @@ import org.slf4j.LoggerFactory;
 public class ClaimCheckAggregationStrategy implements AggregationStrategy {
 
     private static final Logger LOG = LoggerFactory.getLogger(ClaimCheckAggregationStrategy.class);
-    private String include;
-    private String exclude;
+    private String filter;
 
     public ClaimCheckAggregationStrategy() {
     }
 
-    public String getInclude() {
-        return include;
+    public String getFilter() {
+        return filter;
     }
 
-    public void setInclude(String include) {
-        this.include = include;
-    }
-
-    public String getExclude() {
-        return exclude;
-    }
-
-    public void setExclude(String exclude) {
-        this.exclude = exclude;
+    public void setFilter(String filter) {
+        this.filter = filter;
     }
 
     @Override
@@ -72,70 +65,91 @@ public class ClaimCheckAggregationStrategy implements AggregationStrategy {
             return oldExchange;
         }
 
-        if (ObjectHelper.isEmpty(exclude) && (ObjectHelper.isEmpty(include) || "*".equals(include))) {
-            // grab everything if include is empty or wildcard (and exclude is not in use)
-            return newExchange;
+        if (ObjectHelper.isEmpty(filter) || "*".equals(filter)) {
+            // grab everything
+            oldExchange.getMessage().setBody(newExchange.getMessage().getBody());
+            LOG.trace("Including: body");
+            oldExchange.getMessage().getHeaders().putAll(newExchange.getMessage().getHeaders());
+            LOG.trace("Including: headers");
+            return oldExchange;
         }
 
-        // if we have include
-        if (ObjectHelper.isNotEmpty(include)) {
-            Iterable it = ObjectHelper.createIterable(include, ",");
+        // body is by default often included
+        if (isBodyEnabled()) {
+            oldExchange.getMessage().setBody(newExchange.getMessage().getBody());
+            LOG.trace("Including: body");
+        }
+
+        // headers is by default often included
+        if (isHeadersEnabled()) {
+            oldExchange.getMessage().getHeaders().putAll(newExchange.getMessage().getHeaders());
+            LOG.trace("Including: headers");
+        }
+
+        // filter specific header if they are somehow enabled by the filter
+        if (hasHeaderPatterns()) {
+            boolean excludeOnly = isExcludeOnlyHeaderPatterns();
+            for (Map.Entry<String, Object> header : newExchange.getMessage().getHeaders().entrySet()) {
+                String key = header.getKey();
+                if (hasHeaderPattern(key)) {
+                    boolean include = isIncludedHeader(key);
+                    boolean exclude = isExcludedHeader(key);
+                    if (include) {
+                        LOG.trace("Including: header:{}", key);
+                        oldExchange.getMessage().getHeaders().put(key, header.getValue());
+                    } else if (exclude) {
+                        LOG.trace("Excluding: header:{}", key);
+                    } else {
+                        LOG.trace("Skipping: header:{}", key);
+                    }
+                } else if (excludeOnly) {
+                    LOG.trace("Including: header:{}", key);
+                    oldExchange.getMessage().getHeaders().put(key, header.getValue());
+                }
+            }
+        }
+
+        // filter body and all headers
+        if (ObjectHelper.isNotEmpty(filter)) {
+            Iterable it = ObjectHelper.createIterable(filter, ",");
             for (Object k : it) {
                 String part = k.toString();
-                if ("body".equals(part) && !isExcluded("body")) {
+                if (("body".equals(part) || "+body".equals(part)) && !"-body".equals(part)) {
                     oldExchange.getMessage().setBody(newExchange.getMessage().getBody());
                     LOG.trace("Including: body");
-                } else if ("headers".equals(part) && !isExcluded("headers")) {
+                } else if (("headers".equals(part) || "+headers".equals(part)) && !"-headers".equals(part)) {
                     oldExchange.getMessage().getHeaders().putAll(newExchange.getMessage().getHeaders());
                     LOG.trace("Including: headers");
-                } else if (part.startsWith("header:")) {
-                    // pattern matching for headers, eg header:foo, header:foo*, header:(foo|bar)
-                    String after = StringHelper.after(part, "header:");
-                    Iterable i = ObjectHelper.createIterable(after, ",");
-                    for (Object o : i) {
-                        String pattern = o.toString();
-                        for (Map.Entry<String, Object> header : newExchange.getMessage().getHeaders().entrySet()) {
-                            String key = header.getKey();
-                            boolean matched = EndpointHelper.matchPattern(key, pattern);
-                            if (matched && !isExcluded(key)) {
-                                LOG.trace("Including: header:{}", key);
-                                oldExchange.getMessage().getHeaders().put(key, header.getValue());
-                            }
+                }
+            }
+        }
+
+        // filter with remove (--) take precedence at the end
+        Iterable it = ObjectHelper.createIterable(filter, ",");
+        for (Object k : it) {
+            String part = k.toString();
+            if ("--body".equals(part)) {
+                oldExchange.getMessage().setBody(null);
+            } else if ("--headers".equals(part)) {
+                oldExchange.getMessage().getHeaders().clear();
+            } else if (part.startsWith("--header:")) {
+                // pattern matching for headers, eg header:foo, header:foo*, header:(foo|bar)
+                String after = StringHelper.after(part, "--header:");
+                Iterable i = ObjectHelper.createIterable(after, ",");
+                Set<String> toRemoveKeys = new HashSet<>();
+                for (Object o : i) {
+                    String pattern = o.toString();
+                    for (Map.Entry<String, Object> header : oldExchange.getMessage().getHeaders().entrySet()) {
+                        String key = header.getKey();
+                        boolean matched = EndpointHelper.matchPattern(key, pattern);
+                        if (matched) {
+                            toRemoveKeys.add(key);
                         }
                     }
                 }
-            }
-        } else if (ObjectHelper.isNotEmpty(exclude)) {
-            // grab body unless its excluded
-            if (!isExcluded("body")) {
-                oldExchange.getMessage().setBody(newExchange.getMessage().getBody());
-                LOG.trace("Including: body");
-            }
-
-            // if not all headers is excluded, then check each header one-by-one
-            if (!isExcluded("headers")) {
-                // check if we exclude a specific headers
-                Iterable it = ObjectHelper.createIterable(exclude, ",");
-                for (Object k : it) {
-                    String part = k.toString();
-                    if (part.startsWith("header:")) {
-                        // pattern matching for headers, eg header:foo, header:foo*, header:(foo|bar)
-                        String after = StringHelper.after(part, "header:");
-                        Iterable i = ObjectHelper.createIterable(after, ",");
-                        for (Object o : i) {
-                            String pattern = o.toString();
-                            for (Map.Entry<String, Object> header : newExchange.getMessage().getHeaders().entrySet()) {
-                                String key = header.getKey();
-                                boolean excluded = EndpointHelper.matchPattern(key, pattern);
-                                if (!excluded) {
-                                    LOG.trace("Including: header:{}", key);
-                                    oldExchange.getMessage().getHeaders().put(key, header.getValue());
-                                } else {
-                                    LOG.trace("Excluding: header:{}", key);
-                                }
-                            }
-                        }
-                    }
+                for (String key : toRemoveKeys) {
+                    LOG.trace("Removing: header:{}", key);
+                    oldExchange.getMessage().removeHeader(key);
                 }
             }
         }
@@ -143,20 +157,125 @@ public class ClaimCheckAggregationStrategy implements AggregationStrategy {
         return oldExchange;
     }
 
-    private boolean isExcluded(String key) {
-        if (ObjectHelper.isEmpty(exclude)) {
-            return false;
-        }
-        String[] excludes = exclude.split(",");
-        for (String pattern : excludes) {
-            if (pattern.startsWith("header:")) {
-                pattern = StringHelper.after(pattern, "header:");
+    private boolean hasHeaderPatterns() {
+        String[] parts = filter.split(",");
+        for (String pattern : parts) {
+            if (pattern.startsWith("--")) {
+                continue;
             }
-            if (EndpointHelper.matchPattern(key, pattern)) {
-                LOG.trace("Excluding: {}", key);
+            if (pattern.startsWith("header:") || pattern.startsWith("+header:") || pattern.startsWith("-header:")) {
                 return true;
             }
         }
         return false;
     }
+
+    private boolean isExcludeOnlyHeaderPatterns() {
+        String[] parts = filter.split(",");
+        for (String pattern : parts) {
+            if (pattern.startsWith("--")) {
+                continue;
+            }
+            if (pattern.startsWith("header:") || pattern.startsWith("+header:")) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean hasHeaderPattern(String key) {
+        String[] parts = filter.split(",");
+        for (String pattern : parts) {
+            if (pattern.startsWith("--")) {
+                continue;
+            }
+            String header = null;
+            if (pattern.startsWith("header:") || pattern.startsWith("+header:")) {
+                header = StringHelper.after(pattern, "header:");
+            } else if (pattern.startsWith("-header:")) {
+                header = StringHelper.after(pattern, "-header:");
+            }
+            if (header != null && EndpointHelper.matchPattern(key, header)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isIncludedHeader(String key) {
+        String[] parts = filter.split(",");
+        for (String pattern : parts) {
+            if (pattern.startsWith("--")) {
+                continue;
+            }
+            if (pattern.startsWith("header:") || pattern.startsWith("+header:")) {
+                pattern = StringHelper.after(pattern, "header:");
+            }
+            if (EndpointHelper.matchPattern(key, pattern)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isExcludedHeader(String key) {
+        String[] parts = filter.split(",");
+        for (String pattern : parts) {
+            if (pattern.startsWith("--")) {
+                continue;
+            }
+            if (pattern.startsWith("-header:")) {
+                pattern = StringHelper.after(pattern, "-header:");
+            }
+            if (EndpointHelper.matchPattern(key, pattern)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isBodyEnabled() {
+        // body is always enabled unless excluded
+        String[] parts = filter.split(",");
+
+        boolean onlyExclude = true;
+        for (String pattern : parts) {
+            if (pattern.startsWith("--")) {
+                continue;
+            }
+            if ("body".equals(pattern) || "+body".equals(pattern)) {
+                return true;
+            } else if ("-body".equals(pattern)) {
+                return false;
+            }
+            onlyExclude &= pattern.startsWith("-");
+        }
+        // body is enabled if we only have exclude patterns
+        return onlyExclude;
+    }
+
+    private boolean isHeadersEnabled() {
+        // headers may be enabled unless excluded
+        String[] parts = filter.split(",");
+
+        boolean onlyExclude = true;
+        for (String pattern : parts) {
+            if (pattern.startsWith("--")) {
+                continue;
+            }
+            // if there is individual header filters then we cannot rely on this
+            if (pattern.startsWith("header:") || pattern.startsWith("+header:") || pattern.startsWith("-header:")) {
+                return false;
+            }
+            if ("headers".equals(pattern) || "+headers".equals(pattern)) {
+                return true;
+            } else if ("-headers".equals(pattern)) {
+                return false;
+            }
+            onlyExclude &= pattern.startsWith("-");
+        }
+        // headers is enabled if we only have exclude patterns
+        return onlyExclude;
+    }
+
 }

@@ -12,7 +12,7 @@ NOTE: The Camel implementation of this EIP pattern stores the message content te
 
 
 // eip options: START
-The Claim Check EIP supports 5 options which are listed below:
+The Claim Check EIP supports 6 options which are listed below:
 
 
 [width="100%",cols="2,5,^1,2",options="header"]
@@ -20,7 +20,8 @@ The Claim Check EIP supports 5 options which are listed below:
 | Name | Description | Default | Type
 | *operation* | *Required* The claim check operation to use. The following operations is supported: Get - Gets (does not remove) the claim check by the given key. GetAndRemove - Gets and remove the claim check by the given key. Set - Sets a new (will override if key already exists) claim check with the given key. Push - Sets a new claim check on the stack (does not use key). Pop - Gets the latest claim check from the stack (does not use key). |  | ClaimCheckOperation
 | *key* | To use a specific key for claim check id. |  | String
-| *include* | What data to include when merging data back from claim check repository. The following syntax is supported: body - to aggregate the message body headers - to aggregate all the message headers header:pattern - to aggregate all the message headers that matches the pattern. The pattern syntax is documented by: link EndpointHelpermatchPattern(String String). You can specify multiple rules separated by comma. For example to include the message body and all headers starting with foo bodyheader:foo. If the include rule is specified as empty or as wildcard then everything is included. |  | String
+| *include* | What data to include when merging data back from claim check repository. The following syntax is supported: body - to aggregate the message body headers - to aggregate all the message headers header:pattern - to aggregate all the message headers that matches the pattern. The pattern syntax is documented by: link EndpointHelpermatchPattern(String String). You can specify multiple rules separated by comma. For example to include the message body and all headers starting with foo bodyheader:foo. If the include rule is specified as empty or as wildcard then everything is included. If you have configured both include and exclude then exclude take precedence over include. |  | String
+| *exclude* | What data to exclude when merging data back from claim check repository. The following syntax is supported: body - to aggregate the message body headers - to aggregate all the message headers header:pattern - to aggregate all the message headers that matches the pattern. The pattern syntax is documented by: link EndpointHelpermatchPattern(String String). You can specify multiple rules separated by comma. For example to exclude the message body and all headers starting with bar bodyheader:bar. If you have configured both include and exclude then exclude take precedence over include. |  | String
 | *strategyRef* | To use a custom AggregationStrategy instead of the default implementation. Notice you cannot use both custom aggregation strategy and configure data at the same time. |  | String
 | *strategyMethodName* | This option can be used to explicit declare the method name to use when using POJOs as the AggregationStrategy. |  | String
 |===

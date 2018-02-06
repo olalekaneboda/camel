@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
  * <p/>
  * The current Claim Check EIP implementation in Camel is only intended for temporary memory repository. Likewise
  * the repository is not shared among {@link Exchange}s, but a private instance is created per {@link Exchange}.
- * This guards against concurrent and thread-safe issues. For off-memeory persistent storage of data, then use
+ * This guards against concurrent and thread-safe issues. For off-memory persistent storage of data, then use
  * any of the many Camel components that support persistent storage, and do not use this Claim Check EIP implementation.
  */
 public class ClaimCheckProcessor extends ServiceSupport implements AsyncProcessor, IdAware, CamelContextAware {
@@ -50,6 +50,7 @@ public class ClaimCheckProcessor extends ServiceSupport implements AsyncProcesso
     private AggregationStrategy aggregationStrategy;
     private String key;
     private String include;
+    private String exclude;
 
     @Override
     public CamelContext getCamelContext() {
@@ -101,6 +102,14 @@ public class ClaimCheckProcessor extends ServiceSupport implements AsyncProcesso
 
     public void setInclude(String include) {
         this.include = include;
+    }
+
+    public String getExclude() {
+        return exclude;
+    }
+
+    public void setExclude(String exclude) {
+        this.exclude = exclude;
     }
 
     public void process(Exchange exchange) throws Exception {
@@ -198,6 +207,7 @@ public class ClaimCheckProcessor extends ServiceSupport implements AsyncProcesso
     protected AggregationStrategy createAggregationStrategy() {
         ClaimCheckAggregationStrategy answer = new ClaimCheckAggregationStrategy();
         answer.setInclude(include);
+        answer.setExclude(exclude);
         return answer;
     }
 }

@@ -3478,11 +3478,7 @@ public abstract class ProcessorDefinition<Type extends ProcessorDefinition<Type>
      * @param key       the unique key to use for the get and set operations, can be <tt>null</tt> for push/pop operations
      */
     public Type claimCheck(ClaimCheckOperation operation, String key) {
-        ClaimCheckDefinition answer = new ClaimCheckDefinition();
-        answer.setOperation(operation);
-        answer.setKey(key);
-        addOutput(answer);
-        return (Type) this;
+        return claimCheck(operation, key, null, null);
     }
 
     /**
@@ -3492,13 +3488,30 @@ public abstract class ProcessorDefinition<Type extends ProcessorDefinition<Type>
      *
      * @param operation the claim check operation to use.
      * @param key       the unique key to use for the get and set operations, can be <tt>null</tt> for push/pop operations
-     * @param include   describes what data to include and retrieve and merge back when using get or pop operations.
+     * @param include   describes what data to include when merging data back when using get or pop operations.
      */
     public Type claimCheck(ClaimCheckOperation operation, String key, String include) {
+        return claimCheck(operation, key, include, null);
+    }
+
+    /**
+     * The <a href="http://camel.apache.org/claim-check.html">Claim Check EIP</a>
+     * allows you to replace message content with a claim check (a unique key),
+     * which can be used to retrieve the message content at a later time.
+     *
+     * @param operation the claim check operation to use.
+     * @param key       the unique key to use for the get and set operations, can be <tt>null</tt> for push/pop operations
+     * @param include   describes what data to include when merging data back when using get or pop operations.
+     *                  If you have configured both include and exclude then exclude take precedence over include.
+     * @param exclude   describes what data to exclude when merging data back when using get or pop operations.
+     *                  If you have configured both include and exclude then exclude take precedence over include.
+     */
+    public Type claimCheck(ClaimCheckOperation operation, String key, String include, String exclude) {
         ClaimCheckDefinition answer = new ClaimCheckDefinition();
         answer.setOperation(operation);
         answer.setKey(key);
         answer.setInclude(include);
+        answer.setExclude(exclude);
         addOutput(answer);
         return (Type) this;
     }

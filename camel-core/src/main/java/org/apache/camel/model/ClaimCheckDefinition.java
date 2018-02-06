@@ -47,6 +47,8 @@ public class ClaimCheckDefinition extends NoOutputDefinition<ClaimCheckDefinitio
     private String key;
     @XmlAttribute
     private String include;
+    @XmlAttribute
+    private String exclude;
     @XmlAttribute(name = "strategyRef") @Metadata(label = "advanced")
     private String aggregationStrategyRef;
     @XmlAttribute(name = "strategyMethodName") @Metadata(label = "advanced")
@@ -79,6 +81,7 @@ public class ClaimCheckDefinition extends NoOutputDefinition<ClaimCheckDefinitio
         claim.setOperation(operation.name());
         claim.setKey(getKey());
         claim.setInclude(getInclude());
+        claim.setExclude(getExclude());
 
         AggregationStrategy strategy = createAggregationStrategy(routeContext);
         if (strategy != null) {
@@ -86,7 +89,7 @@ public class ClaimCheckDefinition extends NoOutputDefinition<ClaimCheckDefinitio
         }
 
         // only data or aggregation strategy can be configured not both
-        if (getInclude() != null && strategy != null) {
+        if ((getInclude() != null || getExclude() != null) && strategy != null) {
             throw new IllegalArgumentException("Cannot use both include/exclude and custom aggregation strategy on ClaimCheck EIP");
         }
 
@@ -153,9 +156,29 @@ public class ClaimCheckDefinition extends NoOutputDefinition<ClaimCheckDefinitio
      * You can specify multiple rules separated by comma. For example to include the message body and all headers starting with foo
      * <tt>body,header:foo*</tt>.
      * If the include rule is specified as empty or as wildcard then everything is included.
+     * If you have configured both include and exclude then exclude take precedence over include.
      */
     public ClaimCheckDefinition include(String include) {
         setInclude(include);
+        return this;
+    }
+
+    /**
+     * What data to exclude when merging data back from claim check repository.
+     *
+     * The following syntax is supported:
+     * <ul>
+     *     <li>body</li> - to aggregate the message body
+     *     <li>headers</li> - to aggregate all the message headers
+     *     <li>header:pattern</li> - to aggregate all the message headers that matches the pattern.
+     *     The pattern syntax is documented by: {@link EndpointHelper#matchPattern(String, String)}.
+     * </ul>
+     * You can specify multiple rules separated by comma. For example to exclude the message body and all headers starting with bar
+     * <tt>body,header:bar*</tt>.
+     * If you have configured both include and exclude then exclude take precedence over include.
+     */
+    public ClaimCheckDefinition exclude(String exclude) {
+        setExclude(exclude);
         return this;
     }
 
@@ -210,6 +233,14 @@ public class ClaimCheckDefinition extends NoOutputDefinition<ClaimCheckDefinitio
 
     public void setInclude(String include) {
         this.include = include;
+    }
+
+    public String getExclude() {
+        return exclude;
+    }
+
+    public void setExclude(String exclude) {
+        this.exclude = exclude;
     }
 
     public String getAggregationStrategyRef() {

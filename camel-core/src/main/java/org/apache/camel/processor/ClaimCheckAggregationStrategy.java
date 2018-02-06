@@ -23,6 +23,8 @@ import org.apache.camel.processor.aggregate.AggregationStrategy;
 import org.apache.camel.util.EndpointHelper;
 import org.apache.camel.util.ObjectHelper;
 import org.apache.camel.util.StringHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Default {@link AggregationStrategy} used by the {@link ClaimCheckProcessor} EIP.
@@ -37,10 +39,13 @@ import org.apache.camel.util.StringHelper;
  * You can specify multiple rules separated by comma. For example to include the message body and all headers starting with foo
  * <tt>body,header:foo*</tt>.
  * If the include rule is specified as empty or as wildcard then everything is merged.
+ * If you have configured both include and exclude then exclude take precedence over include.
  */
 public class ClaimCheckAggregationStrategy implements AggregationStrategy {
 
+    private static final Logger LOG = LoggerFactory.getLogger(ClaimCheckAggregationStrategy.class);
     private String include;
+    private String exclude;
 
     public ClaimCheckAggregationStrategy() {
     }
@@ -53,34 +58,82 @@ public class ClaimCheckAggregationStrategy implements AggregationStrategy {
         this.include = include;
     }
 
+    public String getExclude() {
+        return exclude;
+    }
+
+    public void setExclude(String exclude) {
+        this.exclude = exclude;
+    }
+
     @Override
     public Exchange aggregate(Exchange oldExchange, Exchange newExchange) {
         if (newExchange == null) {
             return oldExchange;
         }
 
-        if (ObjectHelper.isEmpty(include) || "*".equals(include)) {
-            // grab everything if data is empty or wildcard
+        if (ObjectHelper.isEmpty(exclude) && (ObjectHelper.isEmpty(include) || "*".equals(include))) {
+            // grab everything if include is empty or wildcard (and exclude is not in use)
             return newExchange;
         }
 
-        Iterable it = ObjectHelper.createIterable(include, ",");
-        for (Object k : it) {
-            String part = k.toString();
-            if ("body".equals(part)) {
+        // if we have include
+        if (ObjectHelper.isNotEmpty(include)) {
+            Iterable it = ObjectHelper.createIterable(include, ",");
+            for (Object k : it) {
+                String part = k.toString();
+                if ("body".equals(part) && !isExcluded("body")) {
+                    oldExchange.getMessage().setBody(newExchange.getMessage().getBody());
+                    LOG.trace("Including: body");
+                } else if ("headers".equals(part) && !isExcluded("headers")) {
+                    oldExchange.getMessage().getHeaders().putAll(newExchange.getMessage().getHeaders());
+                    LOG.trace("Including: headers");
+                } else if (part.startsWith("header:")) {
+                    // pattern matching for headers, eg header:foo, header:foo*, header:(foo|bar)
+                    String after = StringHelper.after(part, "header:");
+                    Iterable i = ObjectHelper.createIterable(after, ",");
+                    for (Object o : i) {
+                        String pattern = o.toString();
+                        for (Map.Entry<String, Object> header : newExchange.getMessage().getHeaders().entrySet()) {
+                            String key = header.getKey();
+                            boolean matched = EndpointHelper.matchPattern(key, pattern);
+                            if (matched && !isExcluded(key)) {
+                                LOG.trace("Including: header:{}", key);
+                                oldExchange.getMessage().getHeaders().put(key, header.getValue());
+                            }
+                        }
+                    }
+                }
+            }
+        } else if (ObjectHelper.isNotEmpty(exclude)) {
+            // grab body unless its excluded
+            if (!isExcluded("body")) {
                 oldExchange.getMessage().setBody(newExchange.getMessage().getBody());
-            } else if ("headers".equals(part)) {
-                oldExchange.getMessage().getHeaders().putAll(newExchange.getMessage().getHeaders());
-            } else if (part.startsWith("header:")) {
-                // pattern matching for headers, eg header:foo, header:foo*, header:(foo|bar)
-                String after = StringHelper.after(part, "header:");
-                Iterable i = ObjectHelper.createIterable(after, ",");
-                for (Object o : i) {
-                    String pattern = o.toString();
-                    for (Map.Entry<String, Object> header : newExchange.getMessage().getHeaders().entrySet()) {
-                        String key = header.getKey();
-                        if (EndpointHelper.matchPattern(key, pattern)) {
-                            oldExchange.getMessage().getHeaders().put(key, header.getValue());
+                LOG.trace("Including: body");
+            }
+
+            // if not all headers is excluded, then check each header one-by-one
+            if (!isExcluded("headers")) {
+                // check if we exclude a specific headers
+                Iterable it = ObjectHelper.createIterable(exclude, ",");
+                for (Object k : it) {
+                    String part = k.toString();
+                    if (part.startsWith("header:")) {
+                        // pattern matching for headers, eg header:foo, header:foo*, header:(foo|bar)
+                        String after = StringHelper.after(part, "header:");
+                        Iterable i = ObjectHelper.createIterable(after, ",");
+                        for (Object o : i) {
+                            String pattern = o.toString();
+                            for (Map.Entry<String, Object> header : newExchange.getMessage().getHeaders().entrySet()) {
+                                String key = header.getKey();
+                                boolean excluded = EndpointHelper.matchPattern(key, pattern);
+                                if (!excluded) {
+                                    LOG.trace("Including: header:{}", key);
+                                    oldExchange.getMessage().getHeaders().put(key, header.getValue());
+                                } else {
+                                    LOG.trace("Excluding: header:{}", key);
+                                }
+                            }
                         }
                     }
                 }
@@ -88,5 +141,22 @@ public class ClaimCheckAggregationStrategy implements AggregationStrategy {
         }
 
         return oldExchange;
+    }
+
+    private boolean isExcluded(String key) {
+        if (ObjectHelper.isEmpty(exclude)) {
+            return false;
+        }
+        String[] excludes = exclude.split(",");
+        for (String pattern : excludes) {
+            if (pattern.startsWith("header:")) {
+                pattern = StringHelper.after(pattern, "header:");
+            }
+            if (EndpointHelper.matchPattern(key, pattern)) {
+                LOG.trace("Excluding: {}", key);
+                return true;
+            }
+        }
+        return false;
     }
 }

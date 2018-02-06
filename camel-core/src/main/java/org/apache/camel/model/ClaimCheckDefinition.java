@@ -190,6 +190,7 @@ public class ClaimCheckDefinition extends NoOutputDefinition<ClaimCheckDefinitio
      * The following syntax is supported:
      * <ul>
      *     <li>body</li> - to aggregate the message body
+     *     <li>attachments</li> - to aggregate all the message attachments
      *     <li>headers</li> - to aggregate all the message headers
      *     <li>header:pattern</li> - to aggregate all the message headers that matches the pattern.
      *     The pattern syntax is documented by: {@link EndpointHelper#matchPattern(String, String)}.

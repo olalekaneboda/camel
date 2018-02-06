@@ -1,7 +1,7 @@
 [[claimCheck-eip]]
 == Claim Check EIP
 
-Available as of Camel 2.21
+*Available as of Camel 2.21*
 
 The Claim Check EIP allows you to replace message content with a claim check (a unique key),
 which can be used to retrieve the message content at a later time.

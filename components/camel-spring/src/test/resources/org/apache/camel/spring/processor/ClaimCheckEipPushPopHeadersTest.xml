@@ -36,7 +36,7 @@
         <constant>456</constant>
       </setHeader>
       <to uri="mock:b"/>
-      <claimCheck operation="Pop" include="headers"/>
+      <claimCheck operation="Pop" filter="headers"/>
       <to uri="mock:c"/>
     </route>
   </camelContext>

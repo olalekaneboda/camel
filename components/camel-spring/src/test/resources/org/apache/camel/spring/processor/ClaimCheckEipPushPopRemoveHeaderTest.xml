@@ -27,6 +27,9 @@
   <camelContext xmlns="http://camel.apache.org/schema/spring">
     <route>
       <from uri="direct:start"/>
+      <setHeader headerName="bar">
+        <constant>Moes</constant>
+      </setHeader>
       <to uri="mock:a"/>
       <claimCheck operation="Push"/>
       <transform>
@@ -35,9 +38,12 @@
       <setHeader headerName="foo">
         <constant>456</constant>
       </setHeader>
-      <removeHeader headerName="bar"/>
+      <setHeader headerName="bar">
+        <constant>Jacks</constant>
+      </setHeader>
       <to uri="mock:b"/>
-      <claimCheck operation="Pop" filter="header:(foo|bar)"/>
+      <!-- // skip the body and remove the bar header -->
+      <claimCheck operation="Pop" filter="-body,--header:bar"/>
       <to uri="mock:c"/>
     </route>
   </camelContext>

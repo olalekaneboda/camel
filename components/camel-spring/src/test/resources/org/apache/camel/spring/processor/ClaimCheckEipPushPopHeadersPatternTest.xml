@@ -37,7 +37,7 @@
       </setHeader>
       <removeHeader headerName="bar"/>
       <to uri="mock:b"/>
-      <claimCheck operation="Pop" data="header:(foo|bar)"/>
+      <claimCheck operation="Pop" include="header:(foo|bar)"/>
       <to uri="mock:c"/>
     </route>
   </camelContext>

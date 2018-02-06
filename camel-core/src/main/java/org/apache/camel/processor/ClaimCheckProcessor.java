@@ -49,7 +49,7 @@ public class ClaimCheckProcessor extends ServiceSupport implements AsyncProcesso
     private String operation;
     private AggregationStrategy aggregationStrategy;
     private String key;
-    private String data;
+    private String include;
 
     @Override
     public CamelContext getCamelContext() {
@@ -95,12 +95,12 @@ public class ClaimCheckProcessor extends ServiceSupport implements AsyncProcesso
         this.key = key;
     }
 
-    public String getData() {
-        return data;
+    public String getInclude() {
+        return include;
     }
 
-    public void setData(String data) {
-        this.data = data;
+    public void setInclude(String include) {
+        this.include = include;
     }
 
     public void process(Exchange exchange) throws Exception {
@@ -176,7 +176,7 @@ public class ClaimCheckProcessor extends ServiceSupport implements AsyncProcesso
         ObjectHelper.notNull(operation, "operation", this);
 
         if (aggregationStrategy == null) {
-            aggregationStrategy = createAggregationStrategy(data);
+            aggregationStrategy = createAggregationStrategy();
         }
         if (aggregationStrategy instanceof CamelContextAware) {
             ((CamelContextAware) aggregationStrategy).setCamelContext(camelContext);
@@ -195,7 +195,9 @@ public class ClaimCheckProcessor extends ServiceSupport implements AsyncProcesso
         return "ClaimCheck[" + operation + "]";
     }
 
-    protected AggregationStrategy createAggregationStrategy(String data) {
-        return new ClaimCheckAggregationStrategy(data);
+    protected AggregationStrategy createAggregationStrategy() {
+        ClaimCheckAggregationStrategy answer = new ClaimCheckAggregationStrategy();
+        answer.setInclude(include);
+        return answer;
     }
 }

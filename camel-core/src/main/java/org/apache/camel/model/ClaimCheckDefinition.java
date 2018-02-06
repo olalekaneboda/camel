@@ -46,7 +46,7 @@ public class ClaimCheckDefinition extends NoOutputDefinition<ClaimCheckDefinitio
     @XmlAttribute
     private String key;
     @XmlAttribute
-    private String data;
+    private String include;
     @XmlAttribute(name = "strategyRef") @Metadata(label = "advanced")
     private String aggregationStrategyRef;
     @XmlAttribute(name = "strategyMethodName") @Metadata(label = "advanced")
@@ -78,7 +78,7 @@ public class ClaimCheckDefinition extends NoOutputDefinition<ClaimCheckDefinitio
         ClaimCheckProcessor claim = new ClaimCheckProcessor();
         claim.setOperation(operation.name());
         claim.setKey(getKey());
-        claim.setData(getData());
+        claim.setInclude(getInclude());
 
         AggregationStrategy strategy = createAggregationStrategy(routeContext);
         if (strategy != null) {
@@ -86,8 +86,8 @@ public class ClaimCheckDefinition extends NoOutputDefinition<ClaimCheckDefinitio
         }
 
         // only data or aggregation strategy can be configured not both
-        if (getData() != null && strategy != null) {
-            throw new IllegalArgumentException("Cannot use both data and custom aggregation strategy on ClaimCheck EIP");
+        if (getInclude() != null && strategy != null) {
+            throw new IllegalArgumentException("Cannot use both include/exclude and custom aggregation strategy on ClaimCheck EIP");
         }
 
         return claim;
@@ -141,7 +141,7 @@ public class ClaimCheckDefinition extends NoOutputDefinition<ClaimCheckDefinitio
     }
 
     /**
-     * What data to merge when claiming from the repository.
+     * What data to include when merging data back from claim check repository.
      *
      * The following syntax is supported:
      * <ul>
@@ -152,10 +152,10 @@ public class ClaimCheckDefinition extends NoOutputDefinition<ClaimCheckDefinitio
      * </ul>
      * You can specify multiple rules separated by comma. For example to include the message body and all headers starting with foo
      * <tt>body,header:foo*</tt>.
-     * If the data rule is specified as empty or as wildcard then everything is merged.
+     * If the include rule is specified as empty or as wildcard then everything is included.
      */
-    public ClaimCheckDefinition data(String data) {
-        setData(data);
+    public ClaimCheckDefinition include(String include) {
+        setInclude(include);
         return this;
     }
 
@@ -204,12 +204,12 @@ public class ClaimCheckDefinition extends NoOutputDefinition<ClaimCheckDefinitio
         this.operation = operation;
     }
 
-    public String getData() {
-        return data;
+    public String getInclude() {
+        return include;
     }
 
-    public void setData(String data) {
-        this.data = data;
+    public void setInclude(String include) {
+        this.include = include;
     }
 
     public String getAggregationStrategyRef() {

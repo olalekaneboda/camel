@@ -69,7 +69,6 @@ import org.apache.camel.processor.interceptor.StreamCaching;
 import org.apache.camel.processor.loadbalancer.LoadBalancer;
 import org.apache.camel.spi.AsEndpointUri;
 import org.apache.camel.spi.AsPredicate;
-import org.apache.camel.spi.ClaimCheckRepository;
 import org.apache.camel.spi.DataFormat;
 import org.apache.camel.spi.IdAware;
 import org.apache.camel.spi.IdempotentRepository;
@@ -3493,13 +3492,13 @@ public abstract class ProcessorDefinition<Type extends ProcessorDefinition<Type>
      *
      * @param operation the claim check operation to use.
      * @param key       the unique key to use for the get and set operations, can be <tt>null</tt> for push/pop operations
-     * @param data      describes what data to retrieve and merge back when using get or pop operations.
+     * @param include   describes what data to include and retrieve and merge back when using get or pop operations.
      */
-    public Type claimCheck(ClaimCheckOperation operation, String key, String data) {
+    public Type claimCheck(ClaimCheckOperation operation, String key, String include) {
         ClaimCheckDefinition answer = new ClaimCheckDefinition();
         answer.setOperation(operation);
         answer.setKey(key);
-        answer.setData(data);
+        answer.setInclude(include);
         addOutput(answer);
         return (Type) this;
     }

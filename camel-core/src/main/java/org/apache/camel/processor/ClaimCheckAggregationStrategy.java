@@ -27,7 +27,7 @@ import org.apache.camel.util.StringHelper;
 /**
  * Default {@link AggregationStrategy} used by the {@link ClaimCheckProcessor} EIP.
  * <p/>
- * This strategy supports the following data rules syntax:
+ * This strategy supports the following include rules syntax:
  * <ul>
  *     <li>body</li> - to aggregate the message body
  *     <li>headers</li> - to aggregate all the message headers
@@ -36,14 +36,21 @@ import org.apache.camel.util.StringHelper;
  * </ul>
  * You can specify multiple rules separated by comma. For example to include the message body and all headers starting with foo
  * <tt>body,header:foo*</tt>.
- * If the data rule is specified as empty or as wildcard then everything is merged.
+ * If the include rule is specified as empty or as wildcard then everything is merged.
  */
 public class ClaimCheckAggregationStrategy implements AggregationStrategy {
 
-    private final String data; // describes what data to merge
+    private String include;
 
-    public ClaimCheckAggregationStrategy(String data) {
-        this.data = data;
+    public ClaimCheckAggregationStrategy() {
+    }
+
+    public String getInclude() {
+        return include;
+    }
+
+    public void setInclude(String include) {
+        this.include = include;
     }
 
     @Override
@@ -52,12 +59,12 @@ public class ClaimCheckAggregationStrategy implements AggregationStrategy {
             return oldExchange;
         }
 
-        if (ObjectHelper.isEmpty(data) || "*".equals(data)) {
+        if (ObjectHelper.isEmpty(include) || "*".equals(include)) {
             // grab everything if data is empty or wildcard
             return newExchange;
         }
 
-        Iterable it = ObjectHelper.createIterable(data, ",");
+        Iterable it = ObjectHelper.createIterable(include, ",");
         for (Object k : it) {
             String part = k.toString();
             if ("body".equals(part)) {
